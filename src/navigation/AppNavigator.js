@@ -1,4 +1,5 @@
 import React from 'react';
+<<<<<<< HEAD
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import AuthNavigator from './AuthNavigator';
@@ -30,4 +31,10 @@ export default function AppNavigator() {
   const token = useAuthStore(state => state.token);
 
   return <NavigationContainer>{token ? <MainNavigator /> : <AuthNavigator />}</NavigationContainer>;
+=======
+import HomePage from '../pages/HomePage';
+
+export default function AppNavigator() {
+  return <HomePage />;
+>>>>>>> 1af36b0f8ba8debcac4f29675451e8074a03d48f
 }
