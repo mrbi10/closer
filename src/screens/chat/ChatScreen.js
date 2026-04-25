@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import ScreenContainer from '../../components/ScreenContainer';
 import { getMessagesBySpace, sendMessageToSpace } from '../../services/messageService';
+import useAuthStore from '../../store/useAuthStore';
 import { extractErrorMessage } from '../../utils/errorHandler';
 import { theme } from '../../utils/theme';
 
@@ -32,6 +33,7 @@ const normalizeMessages = payload => {
 export default function ChatScreen({ route }) {
   const spaceId = route.params?.spaceId;
   const spaceName = route.params?.spaceName || 'Chat';
+  const user = useAuthStore(state => state.user);
   const listRef = useRef(null);
 
   const [messages, setMessages] = useState([]);
@@ -88,8 +90,12 @@ export default function ChatScreen({ route }) {
     setIsSending(true);
 
     try {
-      const data = await sendMessageToSpace({ spaceId, text: content });
-      const newMessage = data?.message || data?.data?.message || { text: content };
+      const data = await sendMessageToSpace({ spaceId, message: content });
+      const newMessage = {
+        ...(data?.message || data?.data?.message || data?.data || data || {}),
+        message: data?.message?.message || data?.data?.message?.message || data?.message || content,
+        sender_name: user?.name || 'You',
+      };
       setMessages(prev => [...prev, newMessage]);
     } catch (err) {
       setText(content);
@@ -113,13 +119,16 @@ export default function ChatScreen({ route }) {
   };
 
   const renderMessage = ({ item }) => {
-    const body = item?.text || item?.content || 'Message';
-    const sender = item?.senderName || item?.sender?.name || 'User';
-    const timestamp = getTimestamp(item?.createdAt || item?.timestamp || item?.sentAt);
+    const body = item?.message || item?.text || item?.content || 'Message';
+    const sender = item?.sender_name || item?.senderName || item?.sender?.name || 'User';
+    const timestamp = getTimestamp(item?.created_at || item?.createdAt || item?.timestamp || item?.sentAt);
+    const currentUserId = user?.id || user?.user_id;
+    const itemSenderId = item?.sender_id || item?.senderId;
+    const isOwnMessage = currentUserId && itemSenderId ? String(currentUserId) === String(itemSenderId) : false;
 
     return (
-      <View style={styles.messageCard}>
-        <Text style={styles.sender}>{sender}</Text>
+      <View style={[styles.messageCard, isOwnMessage && styles.ownMessageCard]}>
+        <Text style={[styles.sender, isOwnMessage && styles.ownSender]}>{isOwnMessage ? 'You' : sender}</Text>
         <Text style={styles.messageText}>{body}</Text>
         {!!timestamp && <Text style={styles.timestamp}>{timestamp}</Text>}
       </View>
@@ -129,6 +138,7 @@ export default function ChatScreen({ route }) {
   return (
     <ScreenContainer>
       <Text style={styles.title}>{spaceName}</Text>
+      <Text style={styles.subtitle}>Conversation</Text>
 
       {isLoading ? (
         <View style={styles.centeredState}>
@@ -138,9 +148,11 @@ export default function ChatScreen({ route }) {
         <FlatList
           ref={listRef}
           data={messages}
-          keyExtractor={(item, index) => String(item?._id || item?.id || `${index}-${item?.text || 'm'}`)}
+          keyExtractor={(item, index) => String(item?._id || item?.id || `${index}-${item?.message || item?.text || 'm'}`)}
           renderItem={renderMessage}
           contentContainerStyle={styles.listContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
           onLayout={() => scrollToBottom(false)}
           onContentSizeChange={() => scrollToBottom(false)}
           ListEmptyComponent={<Text style={styles.emptyText}>No messages yet.</Text>}
@@ -156,9 +168,12 @@ export default function ChatScreen({ route }) {
           style={styles.input}
           value={text}
           onChangeText={setText}
+          returnKeyType="send"
+          onSubmitEditing={handleSend}
         />
         <TouchableOpacity
           style={[styles.sendButton, !canSend && styles.sendButtonDisabled]}
+          activeOpacity={0.85}
           disabled={!canSend}
           onPress={handleSend}>
           <Text style={styles.sendText}>{isSending ? '...' : 'Send'}</Text>
@@ -171,26 +186,44 @@ export default function ChatScreen({ route }) {
 const styles = StyleSheet.create({
   title: {
     color: theme.colors.text,
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '700',
-    marginBottom: 12,
+    marginBottom: 2,
     textAlign: 'center',
   },
+  subtitle: {
+    color: theme.colors.text,
+    opacity: 0.72,
+    textAlign: 'center',
+    marginBottom: 12,
+    fontSize: 13,
+  },
   listContent: {
-    paddingBottom: 12,
+    paddingBottom: 14,
   },
   messageCard: {
     borderWidth: 1,
     borderColor: theme.colors.border,
-    borderRadius: 10,
+    borderRadius: 12,
     backgroundColor: theme.colors.inputBackground,
     padding: 12,
-    marginBottom: 8,
+    marginBottom: 10,
+    shadowColor: '#000000',
+    shadowOpacity: 0.14,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
+  },
+  ownMessageCard: {
+    borderColor: theme.colors.accent,
   },
   sender: {
     color: theme.colors.accent,
     fontWeight: '700',
     marginBottom: 4,
+  },
+  ownSender: {
+    opacity: 0.95,
   },
   messageText: {
     color: theme.colors.text,
@@ -206,12 +239,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginTop: 10,
+    marginTop: 12,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border,
   },
   input: {
     flex: 1,
-    height: 46,
-    borderRadius: 10,
+    height: 48,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: theme.colors.border,
     backgroundColor: theme.colors.inputBackground,
@@ -220,8 +256,8 @@ const styles = StyleSheet.create({
   },
   sendButton: {
     width: 72,
-    height: 46,
-    borderRadius: 10,
+    height: 48,
+    borderRadius: 12,
     backgroundColor: theme.colors.accent,
     alignItems: 'center',
     justifyContent: 'center',

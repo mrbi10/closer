@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { createSpace, getMySpaces } from '../services/spaceService';
+import { createSpace, getMySpaces, joinSpace } from '../services/spaceService';
 import { extractErrorMessage } from '../utils/errorHandler';
 
 const normalizeSpaces = payload => {
@@ -16,6 +16,14 @@ const normalizeSpaces = payload => {
     return payload.data;
   }
   return [];
+};
+
+const normalizeSpace = payload => {
+  if (!payload) {
+    return null;
+  }
+
+  return payload?.space || payload?.data?.space || payload?.data || payload;
 };
 
 const useSpaceStore = create((set, get) => ({
@@ -46,8 +54,7 @@ const useSpaceStore = create((set, get) => ({
     set({ loading: true, error: null });
     try {
       const data = await createSpace(payload);
-      const createdSpace =
-        data?.space || data?.data?.space || data?.data || data || null;
+      const createdSpace = normalizeSpace(data);
 
       if (createdSpace) {
         set({ spaces: [createdSpace, ...get().spaces], loading: false, error: null });
@@ -60,6 +67,30 @@ const useSpaceStore = create((set, get) => ({
       set({
         loading: false,
         error: extractErrorMessage(error, 'Unable to create space. Please try again.'),
+      });
+      throw error;
+    }
+  },
+
+  joinExistingSpace: async spaceId => {
+    set({ loading: true, error: null });
+    try {
+      const data = await joinSpace(spaceId);
+      const joinedSpace = normalizeSpace(data);
+
+      if (joinedSpace) {
+        const existing = get().spaces;
+        const nextSpaces = [joinedSpace, ...existing.filter(space => String(space?.id) !== String(joinedSpace?.id))];
+        set({ spaces: nextSpaces, loading: false, error: null });
+      } else {
+        set({ loading: false, error: null });
+      }
+
+      return data;
+    } catch (error) {
+      set({
+        loading: false,
+        error: extractErrorMessage(error, 'Unable to join space. Please try again.'),
       });
       throw error;
     }
