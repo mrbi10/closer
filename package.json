@@ -10,7 +10,6 @@
     "test": "jest"
   },
   "dependencies": {
-<<<<<<< HEAD
     "@react-native-async-storage/async-storage": "^1.21.0",
     "@react-native/new-app-screen": "0.85.2",
     "@react-navigation/native": "^7.2.2",
@@ -22,12 +21,6 @@
     "react-native-safe-area-context": "^5.7.0",
     "react-native-screens": "^4.24.0",
     "zustand": "^5.0.12"
-=======
-    "react": "19.2.3",
-    "react-native": "0.85.2",
-    "@react-native/new-app-screen": "0.85.2",
-    "react-native-safe-area-context": "^5.5.2"
->>>>>>> 1af36b0f8ba8debcac4f29675451e8074a03d48f
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
@@ -53,8 +46,4 @@
   "engines": {
     "node": ">= 22.11.0"
   }
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> 1af36b0f8ba8debcac4f29675451e8074a03d48f

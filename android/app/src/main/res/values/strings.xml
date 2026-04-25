@@ -1,7 +1,3 @@
 <resources>
-<<<<<<< HEAD
-    <string name="app_name">Closer</string>
-=======
     <string name="app_name">closer</string>
->>>>>>> 1af36b0f8ba8debcac4f29675451e8074a03d48f
 </resources>

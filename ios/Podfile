@@ -14,11 +14,7 @@ if linkage != nil
   use_frameworks! :linkage => linkage.to_sym
 end
 
-<<<<<<< HEAD
-target 'closerNew' do
-=======
 target 'closer' do
->>>>>>> 1af36b0f8ba8debcac4f29675451e8074a03d48f
   config = use_native_modules!
 
   use_react_native!(

@@ -77,15 +77,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-<<<<<<< HEAD
-    namespace "com.closernew"
-    defaultConfig {
-        applicationId "com.closernew"
-=======
     namespace "com.closer"
     defaultConfig {
         applicationId "com.closer"
->>>>>>> 1af36b0f8ba8debcac4f29675451e8074a03d48f
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

@@ -66,11 +66,7 @@ This is one way to run your app — you can also build it directly from Android 
 
 Now that you have successfully run the app, let's make changes!
 
-<<<<<<< HEAD
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
-=======
 Open `App.js` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
->>>>>>> 1af36b0f8ba8debcac4f29675451e8074a03d48f
 
 When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
 
@@ -99,7 +95,4 @@ To learn more about React Native, take a look at the following resources:
 - [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
 - [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
 - [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
-<<<<<<< HEAD
-=======
 "# closer" 
->>>>>>> 1af36b0f8ba8debcac4f29675451e8074a03d48f
