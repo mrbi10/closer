@@ -1,4 +1,4 @@
-package com.closernew
+package com.closer
 
 import android.app.Application
 import com.facebook.react.PackageList
