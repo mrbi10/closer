@@ -11,11 +11,14 @@ import ScreenContainer from '../../components/ScreenContainer';
 import { registerUser } from '../../services/authService';
 import useAuthStore from '../../store/useAuthStore';
 import { extractErrorMessage } from '../../utils/errorHandler';
-import { theme } from '../../utils/theme';
+import useThemeStore from '../../store/useThemeStore';
+import { resolveTheme } from '../../utils/theme';
 
 export default function RegisterScreen() {
   const login = useAuthStore(state => state.login);
   const authLoading = useAuthStore(state => state.loading);
+  const isDarkMode = useThemeStore(state => state.isDarkMode);
+  const appTheme = resolveTheme(isDarkMode);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -45,12 +48,12 @@ export default function RegisterScreen() {
   return (
     <ScreenContainer centered>
       <View style={styles.wrapper}>
-        <Text style={styles.title}>Create Account</Text>
+        <Text style={[styles.title, { color: appTheme.colors.text }]}>Create Account</Text>
 
         <TextInput
           placeholder="Name"
-          placeholderTextColor="#8AA1C2"
-          style={styles.input}
+          placeholderTextColor={appTheme.colors.muted}
+          style={[styles.input, { backgroundColor: appTheme.colors.surface, borderColor: appTheme.colors.border, color: appTheme.colors.text }]}
           value={name}
           onChangeText={setName}
         />
@@ -59,8 +62,8 @@ export default function RegisterScreen() {
           autoCapitalize="none"
           keyboardType="email-address"
           placeholder="Email"
-          placeholderTextColor="#8AA1C2"
-          style={styles.input}
+          placeholderTextColor={appTheme.colors.muted}
+          style={[styles.input, { backgroundColor: appTheme.colors.surface, borderColor: appTheme.colors.border, color: appTheme.colors.text }]}
           value={email}
           onChangeText={setEmail}
         />
@@ -68,8 +71,8 @@ export default function RegisterScreen() {
         <TextInput
           secureTextEntry
           placeholder="Password"
-          placeholderTextColor="#8AA1C2"
-          style={styles.input}
+          placeholderTextColor={appTheme.colors.muted}
+          style={[styles.input, { backgroundColor: appTheme.colors.surface, borderColor: appTheme.colors.border, color: appTheme.colors.text }]}
           value={password}
           onChangeText={setPassword}
         />
@@ -77,11 +80,11 @@ export default function RegisterScreen() {
         {!!error && <Text style={styles.error}>{error}</Text>}
 
         <TouchableOpacity
-          style={[styles.button, disabled && styles.buttonDisabled]}
+          style={[styles.button, { backgroundColor: appTheme.colors.accent }, disabled && styles.buttonDisabled]}
           disabled={disabled}
           onPress={handleRegister}>
           {disabled ? (
-            <ActivityIndicator color={theme.colors.text} />
+            <ActivityIndicator color="#FFFFFF" />
           ) : (
             <Text style={styles.buttonText}>Register</Text>
           )}
@@ -98,7 +101,6 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   title: {
-    color: theme.colors.text,
     fontSize: 26,
     fontWeight: '700',
     textAlign: 'center',
@@ -110,12 +112,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    color: theme.colors.text,
-    backgroundColor: theme.colors.inputBackground,
   },
   button: {
-    backgroundColor: theme.colors.accent,
     borderRadius: 10,
     height: 48,
     alignItems: 'center',
@@ -126,12 +124,12 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   buttonText: {
-    color: theme.colors.text,
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '700',
   },
   error: {
-    color: theme.colors.danger,
+    color: '#EF4444',
     marginBottom: 8,
   },
 });

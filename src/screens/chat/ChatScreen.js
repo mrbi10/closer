@@ -1,18 +1,14 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  ActivityIndicator,
-  FlatList,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { FlatList, RefreshControl, StyleSheet, Text, TextInput, View, Vibration } from 'react-native';
 import ScreenContainer from '../../components/ScreenContainer';
+import PressableScale from '../../components/PressableScale';
+import SkeletonBlock from '../../components/SkeletonBlock';
 import { getMessagesBySpace, sendMessageToSpace } from '../../services/messageService';
 import useAuthStore from '../../store/useAuthStore';
+import useSpaceStore from '../../store/useSpaceStore';
+import useThemeStore from '../../store/useThemeStore';
 import { extractErrorMessage } from '../../utils/errorHandler';
-import { theme } from '../../utils/theme';
+import { resolveTheme } from '../../utils/theme';
 
 const normalizeMessages = payload => {
   if (Array.isArray(payload)) {
@@ -30,25 +26,29 @@ const normalizeMessages = payload => {
   return [];
 };
 
-export default function ChatScreen({ route }) {
-  const spaceId = route.params?.spaceId;
-  const spaceName = route.params?.spaceName || 'Chat';
+export default function ChatScreen({ route, navigation }) {
+  const routeSpaceId = route.params?.spaceId;
+  const routeSpaceName = route.params?.spaceName || 'Chat';
   const user = useAuthStore(state => state.user);
+  const currentSpace = useSpaceStore(state => state.currentSpace);
+  const isDarkMode = useThemeStore(state => state.isDarkMode);
+  const appTheme = resolveTheme(isDarkMode);
   const listRef = useRef(null);
 
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
+
+  const spaceId = currentSpace?._id || currentSpace?.id || routeSpaceId;
+  const spaceName = currentSpace?.name || routeSpaceName;
 
   const canSend = useMemo(() => !!spaceId && text.trim().length > 0 && !isSending, [spaceId, text, isSending]);
 
   const scrollToBottom = animated => {
-    if (!listRef.current) {
-      return;
-    }
-    listRef.current.scrollToEnd({ animated });
+    listRef.current?.scrollToEnd?.({ animated });
   };
 
   const loadMessages = async () => {
@@ -71,14 +71,24 @@ export default function ChatScreen({ route }) {
   };
 
   useEffect(() => {
-    loadMessages();
-  }, [spaceId]);
+    navigation.setOptions?.({ title: spaceName });
+    loadMessages().catch(() => {});
+  }, [spaceId, spaceName]);
 
   useEffect(() => {
     if (messages.length > 0) {
       scrollToBottom(true);
     }
   }, [messages]);
+
+  const refreshMessages = async () => {
+    setRefreshing(true);
+    try {
+      await loadMessages();
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const handleSend = async () => {
     if (!canSend) {
@@ -88,6 +98,7 @@ export default function ChatScreen({ route }) {
     const content = text.trim();
     setText('');
     setIsSending(true);
+    Vibration.vibrate(10);
 
     try {
       const data = await sendMessageToSpace({ spaceId, message: content });
@@ -95,8 +106,10 @@ export default function ChatScreen({ route }) {
         ...(data?.message || data?.data?.message || data?.data || data || {}),
         message: data?.message?.message || data?.data?.message?.message || data?.message || content,
         sender_name: user?.name || 'You',
+        created_at: new Date().toISOString(),
       };
       setMessages(prev => [...prev, newMessage]);
+      scrollToBottom(true);
     } catch (err) {
       setText(content);
       setError(extractErrorMessage(err, 'Failed to send message.'));
@@ -105,183 +118,146 @@ export default function ChatScreen({ route }) {
     }
   };
 
-  const getTimestamp = rawTime => {
-    if (!rawTime) {
-      return '';
-    }
-
-    const parsed = new Date(rawTime);
-    if (Number.isNaN(parsed.getTime())) {
-      return '';
-    }
-
-    return parsed.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
-
   const renderMessage = ({ item }) => {
     const body = item?.message || item?.text || item?.content || 'Message';
     const sender = item?.sender_name || item?.senderName || item?.sender?.name || 'User';
-    const timestamp = getTimestamp(item?.created_at || item?.createdAt || item?.timestamp || item?.sentAt);
     const currentUserId = user?.id || user?.user_id;
     const itemSenderId = item?.sender_id || item?.senderId;
-    const isOwnMessage = currentUserId && itemSenderId ? String(currentUserId) === String(itemSenderId) : false;
+    const isOwnMessage = currentUserId && itemSenderId ? String(currentUserId) === String(itemSenderId) : sender === user?.name;
+    const timestamp = item?.created_at || item?.createdAt || item?.timestamp || item?.sentAt;
 
     return (
-      <View style={[styles.messageCard, isOwnMessage && styles.ownMessageCard]}>
-        <Text style={[styles.sender, isOwnMessage && styles.ownSender]}>{isOwnMessage ? 'You' : sender}</Text>
-        <Text style={styles.messageText}>{body}</Text>
-        {!!timestamp && <Text style={styles.timestamp}>{timestamp}</Text>}
+      <View style={[styles.bubble, isOwnMessage ? styles.ownBubble : styles.otherBubble, { backgroundColor: isOwnMessage ? appTheme.colors.accent : appTheme.colors.surface, borderColor: appTheme.colors.border }]}>
+        <Text style={[styles.sender, { color: isOwnMessage ? '#FFFFFF' : appTheme.colors.accent }]}>{isOwnMessage ? 'You' : sender}</Text>
+        <Text style={[styles.messageText, { color: isOwnMessage ? '#FFFFFF' : appTheme.colors.text }]}>{body}</Text>
+        {!!timestamp && <Text style={[styles.timestamp, { color: isOwnMessage ? 'rgba(255,255,255,0.78)' : appTheme.colors.muted }]}>{new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>}
       </View>
     );
   };
 
   return (
     <ScreenContainer>
-      <Text style={styles.title}>{spaceName}</Text>
-      <Text style={styles.subtitle}>Conversation</Text>
+      <View style={styles.header}>
+        <Text style={[styles.title, { color: appTheme.colors.text }]}>{spaceName}</Text>
+        <Text style={[styles.subtitle, { color: appTheme.colors.muted }]}>Simple, rounded, fast.</Text>
+      </View>
 
       {isLoading ? (
-        <View style={styles.centeredState}>
-          <ActivityIndicator color={theme.colors.accent} />
-        </View>
+        <SkeletonBlock style={styles.skeletonList} />
       ) : (
         <FlatList
           ref={listRef}
           data={messages}
-          keyExtractor={(item, index) => String(item?._id || item?.id || `${index}-${item?.message || item?.text || 'm'}`)}
+          keyExtractor={(item, index) => String(item?._id || item?.id || `${index}-${item?.message || 'm'}`)}
           renderItem={renderMessage}
           contentContainerStyle={styles.listContent}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refreshMessages} tintColor={appTheme.colors.accent} />}
           onLayout={() => scrollToBottom(false)}
           onContentSizeChange={() => scrollToBottom(false)}
-          ListEmptyComponent={<Text style={styles.emptyText}>No messages yet.</Text>}
+          ListEmptyComponent={<Text style={[styles.emptyText, { color: appTheme.colors.muted }]}>No messages yet.</Text>}
         />
       )}
 
-      {!!error && <Text style={styles.error}>{error}</Text>}
+      {!!error && <Text style={[styles.error, { color: appTheme.colors.danger }]}>{error}</Text>}
 
-      <View style={styles.composeRow}>
+      <View style={[styles.composeRow, { borderTopColor: appTheme.colors.border }]}>
         <TextInput
           placeholder="Type a message"
-          placeholderTextColor="#8AA1C2"
-          style={styles.input}
+          placeholderTextColor={appTheme.colors.muted}
+          style={[styles.input, { backgroundColor: appTheme.colors.surface, color: appTheme.colors.text, borderColor: appTheme.colors.border }]}
           value={text}
           onChangeText={setText}
           returnKeyType="send"
           onSubmitEditing={handleSend}
         />
-        <TouchableOpacity
-          style={[styles.sendButton, !canSend && styles.sendButtonDisabled]}
-          activeOpacity={0.85}
-          disabled={!canSend}
-          onPress={handleSend}>
+        <PressableScale onPress={handleSend} disabled={!canSend} style={[styles.sendButton, !canSend && styles.sendButtonDisabled, { backgroundColor: appTheme.colors.accent }]}>
           <Text style={styles.sendText}>{isSending ? '...' : 'Send'}</Text>
-        </TouchableOpacity>
+        </PressableScale>
       </View>
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
+  header: {
+    marginBottom: 12,
+  },
   title: {
-    color: theme.colors.text,
     fontSize: 24,
-    fontWeight: '700',
-    marginBottom: 2,
-    textAlign: 'center',
+    fontWeight: '800',
   },
   subtitle: {
-    color: theme.colors.text,
-    opacity: 0.72,
-    textAlign: 'center',
-    marginBottom: 12,
-    fontSize: 13,
+    marginTop: 4,
+    fontSize: 12,
   },
   listContent: {
-    paddingBottom: 14,
+    paddingBottom: 12,
   },
-  messageCard: {
+  bubble: {
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: 12,
-    backgroundColor: theme.colors.inputBackground,
-    padding: 12,
+    borderRadius: 18,
+    padding: 14,
     marginBottom: 10,
-    shadowColor: '#000000',
-    shadowOpacity: 0.14,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 2,
+    maxWidth: '86%',
   },
-  ownMessageCard: {
-    borderColor: theme.colors.accent,
+  ownBubble: {
+    alignSelf: 'flex-end',
+    borderTopRightRadius: 8,
+  },
+  otherBubble: {
+    alignSelf: 'flex-start',
+    borderTopLeftRadius: 8,
   },
   sender: {
-    color: theme.colors.accent,
-    fontWeight: '700',
+    fontWeight: '800',
     marginBottom: 4,
   },
-  ownSender: {
-    opacity: 0.95,
-  },
   messageText: {
-    color: theme.colors.text,
     lineHeight: 20,
   },
   timestamp: {
-    color: theme.colors.text,
-    opacity: 0.6,
     marginTop: 6,
-    fontSize: 12,
+    fontSize: 11,
   },
   composeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginTop: 12,
-    paddingTop: 8,
+    gap: 10,
+    marginTop: 10,
+    paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: theme.colors.border,
   },
   input: {
     flex: 1,
     height: 48,
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    backgroundColor: theme.colors.inputBackground,
-    color: theme.colors.text,
     paddingHorizontal: 14,
   },
   sendButton: {
-    width: 72,
     height: 48,
-    borderRadius: 12,
-    backgroundColor: theme.colors.accent,
+    minWidth: 74,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
   sendButtonDisabled: {
-    opacity: 0.6,
+    opacity: 0.55,
   },
   sendText: {
-    color: theme.colors.text,
-    fontWeight: '700',
-  },
-  centeredState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptyText: {
-    color: theme.colors.text,
-    opacity: 0.8,
-    textAlign: 'center',
-    marginTop: 30,
+    color: '#FFFFFF',
+    fontWeight: '800',
   },
   error: {
-    color: theme.colors.danger,
     marginTop: 8,
+  },
+  emptyText: {
+    textAlign: 'center',
+    marginTop: 20,
+  },
+  skeletonList: {
+    height: 320,
   },
 });

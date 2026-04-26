@@ -10,12 +10,15 @@ import {
 import ScreenContainer from '../../components/ScreenContainer';
 import useAuthStore from '../../store/useAuthStore';
 import { extractErrorMessage } from '../../utils/errorHandler';
-import { theme } from '../../utils/theme';
+import useThemeStore from '../../store/useThemeStore';
+import { resolveTheme } from '../../utils/theme';
 
 export default function LoginScreen({ navigation }) {
   const login = useAuthStore(state => state.login);
   const loading = useAuthStore(state => state.loading);
   const storeError = useAuthStore(state => state.error);
+  const isDarkMode = useThemeStore(state => state.isDarkMode);
+  const appTheme = resolveTheme(isDarkMode);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -38,15 +41,15 @@ export default function LoginScreen({ navigation }) {
   return (
     <ScreenContainer centered>
       <View style={styles.wrapper}>
-        <Text style={styles.title}>Closer</Text>
-        <Text style={styles.subtitle}>Sign in to continue</Text>
+        <Text style={[styles.title, { color: appTheme.colors.text }]}>Closer</Text>
+        <Text style={[styles.subtitle, { color: appTheme.colors.muted }]}>Sign in to continue</Text>
 
         <TextInput
           autoCapitalize="none"
           keyboardType="email-address"
           placeholder="Email"
-          placeholderTextColor="#8AA1C2"
-          style={styles.input}
+          placeholderTextColor={appTheme.colors.muted}
+          style={[styles.input, { backgroundColor: appTheme.colors.surface, borderColor: appTheme.colors.border, color: appTheme.colors.text }]}
           value={email}
           onChangeText={setEmail}
         />
@@ -54,8 +57,8 @@ export default function LoginScreen({ navigation }) {
         <TextInput
           secureTextEntry
           placeholder="Password"
-          placeholderTextColor="#8AA1C2"
-          style={styles.input}
+          placeholderTextColor={appTheme.colors.muted}
+          style={[styles.input, { backgroundColor: appTheme.colors.surface, borderColor: appTheme.colors.border, color: appTheme.colors.text }]}
           value={password}
           onChangeText={setPassword}
         />
@@ -63,11 +66,11 @@ export default function LoginScreen({ navigation }) {
         {!!(localError || storeError) && <Text style={styles.error}>{localError || storeError}</Text>}
 
         <TouchableOpacity
-          style={[styles.button, loading && styles.buttonDisabled]}
+          style={[styles.button, { backgroundColor: appTheme.colors.accent }, loading && styles.buttonDisabled]}
           disabled={loading}
           onPress={handleLogin}>
           {loading ? (
-            <ActivityIndicator color={theme.colors.text} />
+            <ActivityIndicator color="#FFFFFF" />
           ) : (
             <Text style={styles.buttonText}>Login</Text>
           )}
@@ -88,7 +91,6 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   title: {
-    color: theme.colors.text,
     fontSize: 30,
     fontWeight: '700',
     textAlign: 'center',
@@ -106,12 +108,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    color: theme.colors.text,
-    backgroundColor: theme.colors.inputBackground,
   },
   button: {
-    backgroundColor: theme.colors.accent,
     borderRadius: 10,
     height: 48,
     alignItems: 'center',
@@ -122,18 +120,18 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   buttonText: {
-    color: theme.colors.text,
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '700',
   },
   link: {
     marginTop: 18,
     textAlign: 'center',
-    color: theme.colors.accent,
+    color: '#60A5FA',
     fontWeight: '600',
   },
   error: {
-    color: theme.colors.danger,
+    color: '#EF4444',
     marginBottom: 8,
   },
 });
