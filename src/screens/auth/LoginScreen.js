@@ -63,7 +63,7 @@ export default function LoginScreen({ navigation }) {
           onChangeText={setPassword}
         />
 
-        {!!(localError || storeError) && <Text style={styles.error}>{localError || storeError}</Text>}
+        {!!(localError || storeError) && <Text style={[styles.error, { color: appTheme.colors.danger }]}>{localError || storeError}</Text>}
 
         <TouchableOpacity
           style={[styles.button, { backgroundColor: appTheme.colors.accent }, loading && styles.buttonDisabled]}
@@ -77,7 +77,7 @@ export default function LoginScreen({ navigation }) {
         </TouchableOpacity>
 
         <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-          <Text style={styles.link}>Don't have an account? Register</Text>
+          <Text style={[styles.link, { color: appTheme.colors.accentSoft }]}>Don't have an account? Register</Text>
         </TouchableOpacity>
       </View>
     </ScreenContainer>
@@ -97,7 +97,6 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   subtitle: {
-    color: theme.colors.text,
     textAlign: 'center',
     marginBottom: 20,
     opacity: 0.85,
@@ -127,11 +126,9 @@ const styles = StyleSheet.create({
   link: {
     marginTop: 18,
     textAlign: 'center',
-    color: '#60A5FA',
     fontWeight: '600',
   },
   error: {
-    color: '#EF4444',
     marginBottom: 8,
   },
 });
